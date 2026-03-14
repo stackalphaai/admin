@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { modelsApi } from "@/services/api"
 import { Card } from "@/components/Card"
-import { Save, Plus, X } from "lucide-react"
+import { Save, Plus } from "lucide-react"
 
 interface LLMModel {
   id: string
