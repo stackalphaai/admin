@@ -11,6 +11,7 @@ import {
   Wallet,
   Link2,
   Megaphone,
+  Brain,
 } from "lucide-react"
 import { useAuthStore } from "@/stores/auth"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,7 @@ const navItems = [
   { to: "/exchange-connections", icon: Link2, label: "Exchanges" },
   { to: "/wallets", icon: Wallet, label: "Wallets" },
   { to: "/tasks", icon: Zap, label: "Tasks" },
+  { to: "/models", icon: Brain, label: "Models" },
   { to: "/config", icon: Settings, label: "Config" },
   { to: "/broadcast", icon: Megaphone, label: "Broadcast" },
 ]

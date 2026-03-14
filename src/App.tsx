@@ -12,6 +12,7 @@ import { TasksPage } from "@/pages/TasksPage"
 import { ExchangeConnectionsPage } from "@/pages/ExchangeConnectionsPage"
 import { WalletsPage } from "@/pages/WalletsPage"
 import { BroadcastPage } from "@/pages/BroadcastPage"
+import { ModelsPage } from "@/pages/ModelsPage"
 import type { ReactNode } from "react"
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="exchange-connections" element={<ExchangeConnectionsPage />} />
           <Route path="wallets" element={<WalletsPage />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="models" element={<ModelsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="broadcast" element={<BroadcastPage />} />
         </Route>

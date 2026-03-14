@@ -142,6 +142,16 @@ export const subscriptionsApi = {
   cancel: (id: string) => api.post(`/v1/admin/subscriptions/${id}/cancel`),
 }
 
+// Models
+export const modelsApi = {
+  list: () => api.get<{ id: string; name: string; provider: string; description: string; is_active: boolean }[]>("/v1/admin/models"),
+  update: (activeModels: string[]) =>
+    api.put<{ active_models: string[]; count: number; message: string }>(
+      "/v1/admin/models",
+      { active_models: activeModels }
+    ),
+}
+
 // Tasks
 export const tasksApi = {
   list: () => api.get<CeleryTask[]>("/v1/admin/tasks"),
