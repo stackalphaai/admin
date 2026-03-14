@@ -4,7 +4,38 @@ import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
 import { formatDate } from "@/lib/utils"
 import type { UserListItem, UserDetail } from "@/types"
-import { Search, X, Shield, ShieldOff, Ban, UserCheck, Gift } from "lucide-react"
+import { Search, X, Save, Gift } from "lucide-react"
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <label className="flex items-center justify-between py-2 cursor-pointer">
+      <span className="text-sm">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-accent" : "bg-border-hover"
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5 ${
+            checked ? "translate-x-4.5" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+    </label>
+  )
+}
 
 export function UsersPage() {
   const [users, setUsers] = useState<UserListItem[]>([])
@@ -14,6 +45,16 @@ export function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState("")
+
+  // Editable fields
+  const [editName, setEditName] = useState("")
+  const [editActive, setEditActive] = useState(false)
+  const [editVerified, setEditVerified] = useState(false)
+  const [editSubscribed, setEditSubscribed] = useState(false)
+  const [editAdmin, setEditAdmin] = useState(false)
+  const [editSuperadmin, setEditSuperadmin] = useState(false)
 
   const pageSize = 20
   const totalPages = Math.ceil(total / pageSize)
@@ -34,11 +75,22 @@ export function UsersPage() {
     fetchUsers()
   }, [page, search])
 
+  const populateEditFields = (user: UserDetail) => {
+    setEditName(user.full_name || "")
+    setEditActive(user.is_active)
+    setEditVerified(user.is_verified)
+    setEditSubscribed(user.is_subscribed)
+    setEditAdmin(user.is_admin)
+    setEditSuperadmin(user.is_superadmin)
+  }
+
   const viewUser = async (id: string) => {
     setDetailLoading(true)
+    setMessage("")
     try {
       const res = await usersApi.detail(id)
       setSelectedUser(res.data)
+      populateEditFields(res.data)
     } catch (e) {
       console.error(e)
     } finally {
@@ -46,21 +98,39 @@ export function UsersPage() {
     }
   }
 
-  const handleAction = async (
-    action: "toggleActive" | "toggleAdmin" | "grantSub",
-    userId: string
-  ) => {
+  const handleSave = async () => {
+    if (!selectedUser) return
+    setSaving(true)
+    setMessage("")
     try {
-      if (action === "toggleActive") await usersApi.toggleActive(userId)
-      else if (action === "toggleAdmin") await usersApi.toggleAdmin(userId)
-      else if (action === "grantSub")
-        await usersApi.grantSubscription(userId, "monthly", 30)
+      const res = await usersApi.update(selectedUser.id, {
+        full_name: editName || null,
+        is_active: editActive,
+        is_verified: editVerified,
+        is_subscribed: editSubscribed,
+        is_admin: editAdmin,
+        is_superadmin: editSuperadmin,
+      })
+      setSelectedUser(res.data)
+      populateEditFields(res.data)
+      setMessage("User updated")
+      fetchUsers()
+    } catch (e) {
+      setMessage("Error updating user")
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
+  }
 
-      // Refresh user detail
-      if (selectedUser?.id === userId) {
-        const res = await usersApi.detail(userId)
-        setSelectedUser(res.data)
-      }
+  const handleGrantSub = async () => {
+    if (!selectedUser) return
+    try {
+      await usersApi.grantSubscription(selectedUser.id, "monthly", 30)
+      const res = await usersApi.detail(selectedUser.id)
+      setSelectedUser(res.data)
+      populateEditFields(res.data)
+      setMessage("30-day subscription granted")
       fetchUsers()
     } catch (e) {
       console.error(e)
@@ -134,7 +204,7 @@ export function UsersPage() {
                 onClick={() => viewUser(row.id)}
                 className="text-xs text-accent hover:text-accent-hover"
               >
-                View
+                Edit
               </button>
             ),
           },
@@ -146,7 +216,7 @@ export function UsersPage() {
         isLoading={loading}
       />
 
-      {/* User Detail Modal */}
+      {/* User Edit Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-surface border border-border rounded-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
@@ -155,7 +225,14 @@ export function UsersPage() {
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">{selectedUser.email}</h2>
+                  <div>
+                    <h2 className="text-lg font-bold">
+                      {selectedUser.email}
+                    </h2>
+                    <span className="text-xs text-text-muted font-mono">
+                      {selectedUser.id}
+                    </span>
+                  </div>
                   <button
                     onClick={() => setSelectedUser(null)}
                     className="text-text-muted hover:text-text-primary"
@@ -164,103 +241,116 @@ export function UsersPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm mb-6">
-                  <div>
-                    <span className="text-text-muted">Name</span>
-                    <p>{selectedUser.full_name || "-"}</p>
+                {/* Read-only stats */}
+                <div className="grid grid-cols-3 gap-3 text-sm mb-5 p-3 bg-background rounded-md">
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">Logins</p>
+                    <p className="font-semibold">{selectedUser.login_count}</p>
                   </div>
-                  <div>
-                    <span className="text-text-muted">Login Count</span>
-                    <p>{selectedUser.login_count}</p>
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">Trades</p>
+                    <p className="font-semibold">{selectedUser.trade_count}</p>
                   </div>
-                  <div>
-                    <span className="text-text-muted">Wallets</span>
-                    <p>{selectedUser.wallet_count}</p>
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">Wallets</p>
+                    <p className="font-semibold">{selectedUser.wallet_count}</p>
                   </div>
-                  <div>
-                    <span className="text-text-muted">Trades</span>
-                    <p>{selectedUser.trade_count}</p>
-                  </div>
-                  <div>
-                    <span className="text-text-muted">Exchanges</span>
-                    <p>{selectedUser.exchange_connection_count}</p>
-                  </div>
-                  <div>
-                    <span className="text-text-muted">Telegram</span>
-                    <p>
-                      <StatusBadge
-                        status={
-                          selectedUser.has_telegram ? "connected" : "disconnected"
-                        }
-                      />
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">Exchanges</p>
+                    <p className="font-semibold">
+                      {selectedUser.exchange_connection_count}
                     </p>
                   </div>
-                  <div>
-                    <span className="text-text-muted">2FA</span>
-                    <p>
-                      <StatusBadge
-                        status={
-                          selectedUser.is_2fa_enabled ? "active" : "inactive"
-                        }
-                      />
-                    </p>
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">Telegram</p>
+                    <StatusBadge
+                      status={
+                        selectedUser.has_telegram ? "connected" : "disconnected"
+                      }
+                    />
                   </div>
-                  <div>
-                    <span className="text-text-muted">Joined</span>
-                    <p className="text-xs">
-                      {formatDate(selectedUser.created_at)}
-                    </p>
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">2FA</p>
+                    <StatusBadge
+                      status={
+                        selectedUser.is_2fa_enabled ? "active" : "inactive"
+                      }
+                    />
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() =>
-                      handleAction("toggleActive", selectedUser.id)
-                    }
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium ${
-                      selectedUser.is_active
-                        ? "bg-danger/10 text-danger hover:bg-danger/20"
-                        : "bg-success/10 text-success hover:bg-success/20"
-                    }`}
-                  >
-                    {selectedUser.is_active ? (
-                      <>
-                        <Ban size={12} /> Ban User
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck size={12} /> Activate
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleAction("toggleAdmin", selectedUser.id)
-                    }
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20"
-                  >
-                    {selectedUser.is_admin ? (
-                      <>
-                        <ShieldOff size={12} /> Remove Admin
-                      </>
-                    ) : (
-                      <>
-                        <Shield size={12} /> Make Admin
-                      </>
-                    )}
-                  </button>
-                  {!selectedUser.is_subscribed && (
+                {/* Editable fields */}
+                <div className="space-y-3 mb-5">
+                  <div>
+                    <label className="block text-xs text-text-muted mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="No name set"
+                      className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <div className="bg-background rounded-md px-3 py-1 divide-y divide-border">
+                    <Toggle
+                      label="Active"
+                      checked={editActive}
+                      onChange={setEditActive}
+                    />
+                    <Toggle
+                      label="Email Verified"
+                      checked={editVerified}
+                      onChange={setEditVerified}
+                    />
+                    <Toggle
+                      label="Subscribed"
+                      checked={editSubscribed}
+                      onChange={setEditSubscribed}
+                    />
+                    <Toggle
+                      label="Admin"
+                      checked={editAdmin}
+                      onChange={setEditAdmin}
+                    />
+                    <Toggle
+                      label="Superadmin"
+                      checked={editSuperadmin}
+                      onChange={setEditSuperadmin}
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
                     <button
-                      onClick={() =>
-                        handleAction("grantSub", selectedUser.id)
-                      }
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-success/10 text-success hover:bg-success/20"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+                    >
+                      <Save size={14} />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                    <button
+                      onClick={handleGrantSub}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium bg-success/10 text-success hover:bg-success/20"
                     >
                       <Gift size={12} /> Grant 30d Sub
                     </button>
+                  </div>
+                  {message && (
+                    <span className="text-xs text-accent">{message}</span>
                   )}
                 </div>
+
+                <p className="text-[10px] text-text-muted mt-3">
+                  Joined {formatDate(selectedUser.created_at)}
+                  {selectedUser.last_login &&
+                    ` · Last login ${formatDate(selectedUser.last_login)}`}
+                </p>
               </>
             )}
           </div>

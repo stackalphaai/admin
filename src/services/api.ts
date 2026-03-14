@@ -89,6 +89,8 @@ export const usersApi = {
       params: { page, page_size: pageSize, search },
     }),
   detail: (id: string) => api.get<UserDetail>(`/v1/admin/users/${id}`),
+  update: (id: string, data: Partial<UserDetail>) =>
+    api.put<UserDetail>(`/v1/admin/users/${id}`, data),
   toggleActive: (id: string) =>
     api.post(`/v1/admin/users/${id}/toggle-active`),
   toggleAdmin: (id: string) => api.post(`/v1/admin/users/${id}/toggle-admin`),
