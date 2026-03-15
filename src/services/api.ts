@@ -119,6 +119,12 @@ export const signalsApi = {
     }),
   invalidate: (id: string) =>
     api.post(`/v1/admin/signals/${id}/invalidate`),
+  execute: (id: string) =>
+    api.post(`/v1/admin/signals/${id}/execute`),
+  executeForUser: (id: string, userEmail: string) =>
+    api.post(`/v1/admin/signals/${id}/execute-for-user`, {
+      user_email: userEmail,
+    }),
 }
 
 // Trades

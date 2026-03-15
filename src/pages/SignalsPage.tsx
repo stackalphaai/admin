@@ -5,6 +5,17 @@ import { StatusBadge } from "@/components/StatusBadge"
 import { formatDate, formatCurrency } from "@/lib/utils"
 import type { Signal } from "@/types"
 
+interface ExecuteResult {
+  signal_id: string
+  symbol: string
+  exchange: string
+  total_eligible: number
+  executed: number
+  rejected: number
+  errors: number
+  details: { user: string; status: string; reason?: string; trade_id?: string }[]
+}
+
 export function SignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([])
   const [total, setTotal] = useState(0)
@@ -16,6 +27,8 @@ export function SignalsPage() {
   const [genExchange, setGenExchange] = useState("hyperliquid")
   const [generating, setGenerating] = useState(false)
   const [genResult, setGenResult] = useState("")
+  const [executing, setExecuting] = useState<string | null>(null)
+  const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null)
 
   const pageSize = 20
   const totalPages = Math.ceil(total / pageSize)
@@ -63,6 +76,21 @@ export function SignalsPage() {
       fetchSignals()
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  const handleExecute = async (id: string) => {
+    if (!confirm("Execute this signal for all eligible users?")) return
+    setExecuting(id)
+    setExecuteResult(null)
+    try {
+      const res = await signalsApi.execute(id)
+      setExecuteResult(res.data)
+    } catch (e) {
+      console.error(e)
+      alert("Failed to execute signal")
+    } finally {
+      setExecuting(null)
     }
   }
 
@@ -141,6 +169,63 @@ export function SignalsPage() {
         </select>
       </div>
 
+      {/* Execute Result */}
+      {executeResult && (
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">
+              Execution Result — {executeResult.symbol} ({executeResult.exchange})
+            </h2>
+            <button
+              onClick={() => setExecuteResult(null)}
+              className="text-xs text-text-muted hover:text-text"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="flex gap-4 text-sm mb-3">
+            <span>
+              Eligible: <strong>{executeResult.total_eligible}</strong>
+            </span>
+            <span className="text-green-400">
+              Executed: <strong>{executeResult.executed}</strong>
+            </span>
+            <span className="text-yellow-400">
+              Rejected: <strong>{executeResult.rejected}</strong>
+            </span>
+            <span className="text-red-400">
+              Errors: <strong>{executeResult.errors}</strong>
+            </span>
+          </div>
+          {executeResult.details.length > 0 && (
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {executeResult.details.map((d, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-xs font-mono"
+                >
+                  <span
+                    className={
+                      d.status === "executed"
+                        ? "text-green-400"
+                        : d.status === "rejected"
+                          ? "text-yellow-400"
+                          : "text-red-400"
+                    }
+                  >
+                    {d.status}
+                  </span>
+                  <span className="text-text-muted">{d.user}</span>
+                  {d.reason && (
+                    <span className="text-text-muted">— {d.reason}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <DataTable
         columns={[
           { header: "Symbol", accessor: "symbol" },
@@ -183,16 +268,28 @@ export function SignalsPage() {
             ),
           },
           {
-            header: "",
-            accessor: (row: Signal) =>
-              row.status !== "expired" ? (
-                <button
-                  onClick={() => handleInvalidate(row.id)}
-                  className="text-xs text-danger hover:text-danger/80"
-                >
-                  Invalidate
-                </button>
-              ) : null,
+            header: "Actions",
+            accessor: (row: Signal) => (
+              <div className="flex gap-2">
+                {row.status === "active" && (
+                  <button
+                    onClick={() => handleExecute(row.id)}
+                    disabled={executing === row.id}
+                    className="text-xs text-accent hover:text-accent-hover font-medium disabled:opacity-50"
+                  >
+                    {executing === row.id ? "Executing..." : "Execute"}
+                  </button>
+                )}
+                {row.status !== "expired" && (
+                  <button
+                    onClick={() => handleInvalidate(row.id)}
+                    className="text-xs text-danger hover:text-danger/80"
+                  >
+                    Invalidate
+                  </button>
+                )}
+              </div>
+            ),
           },
         ]}
         data={signals}
