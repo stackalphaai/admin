@@ -32,7 +32,7 @@ export function ExchangeConnectionsPage() {
 
       <DataTable
         columns={[
-          { header: "User ID", accessor: (row: ExchangeConnection) => <span className="text-xs font-mono">{row.user_id.slice(0, 8)}...</span> },
+          { header: "User", accessor: (row: ExchangeConnection) => <span className="text-xs">{row.user_email}</span> },
           { header: "Exchange", accessor: (row: ExchangeConnection) => <span className="capitalize">{row.exchange_type}</span> },
           { header: "Label", accessor: (row: ExchangeConnection) => row.label || "-" },
           { header: "Testnet", accessor: (row: ExchangeConnection) => row.is_testnet ? "Yes" : "No" },

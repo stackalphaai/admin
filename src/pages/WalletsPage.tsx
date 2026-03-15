@@ -32,7 +32,7 @@ export function WalletsPage() {
 
       <DataTable
         columns={[
-          { header: "User ID", accessor: (row: WalletInfo) => <span className="text-xs font-mono">{row.user_id.slice(0, 8)}...</span> },
+          { header: "User", accessor: (row: WalletInfo) => <span className="text-xs">{row.user_email}</span> },
           { header: "Address", accessor: (row: WalletInfo) => <span className="text-xs font-mono">{row.address.slice(0, 10)}...{row.address.slice(-6)}</span> },
           { header: "Type", accessor: (row: WalletInfo) => <span className="capitalize">{row.wallet_type}</span> },
           { header: "Status", accessor: (row: WalletInfo) => <StatusBadge status={row.status} /> },

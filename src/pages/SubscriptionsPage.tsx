@@ -61,7 +61,7 @@ export function SubscriptionsPage() {
 
       <DataTable
         columns={[
-          { header: "User ID", accessor: (row: Subscription) => <span className="text-xs font-mono">{row.user_id.slice(0, 8)}...</span> },
+          { header: "User", accessor: (row: Subscription) => <span className="text-xs">{row.user_email}</span> },
           { header: "Plan", accessor: (row: Subscription) => <span className="capitalize">{row.plan}</span> },
           { header: "Price", accessor: (row: Subscription) => formatCurrency(row.price_usd) },
           { header: "Status", accessor: (row: Subscription) => <StatusBadge status={row.status} /> },

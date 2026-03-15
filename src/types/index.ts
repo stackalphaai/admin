@@ -100,6 +100,7 @@ export interface Trade {
 export interface Subscription {
   id: string
   user_id: string
+  user_email: string
   plan: string
   status: string
   price_usd: number
@@ -124,6 +125,7 @@ export interface PaginatedResponse<T> {
 export interface ExchangeConnection {
   id: string
   user_id: string
+  user_email: string
   exchange_type: string
   label: string | null
   is_testnet: boolean
@@ -137,6 +139,7 @@ export interface ExchangeConnection {
 export interface WalletInfo {
   id: string
   user_id: string
+  user_email: string
   address: string
   wallet_type: string
   status: string
