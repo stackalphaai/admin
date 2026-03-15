@@ -12,6 +12,7 @@ import {
   Link2,
   Megaphone,
   Brain,
+  ScrollText,
 } from "lucide-react"
 import { useAuthStore } from "@/stores/auth"
 import { cn } from "@/lib/utils"
@@ -27,6 +28,7 @@ const navItems = [
   { to: "/tasks", icon: Zap, label: "Tasks" },
   { to: "/models", icon: Brain, label: "Models" },
   { to: "/config", icon: Settings, label: "Config" },
+  { to: "/logs", icon: ScrollText, label: "Logs" },
   { to: "/broadcast", icon: Megaphone, label: "Broadcast" },
 ]
 

@@ -189,3 +189,17 @@ export const walletsApi = {
       params: { page, page_size: pageSize },
     }),
 }
+
+// Logs
+export const logsApi = {
+  get: (source = "celery-worker", lines = 200, search?: string) =>
+    api.get<{
+      source: string
+      lines: string[]
+      total_lines: number
+      available_sources: string[]
+      error?: string
+    }>("/v1/admin/logs", {
+      params: { source, lines, search: search || undefined },
+    }),
+}
