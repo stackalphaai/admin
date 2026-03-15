@@ -41,9 +41,11 @@ function LiveTradesView() {
             className={`w-2 h-2 rounded-full ${
               status === "connected"
                 ? "bg-green-400 animate-pulse"
-                : status === "connecting"
-                  ? "bg-yellow-400 animate-pulse"
-                  : "bg-red-400"
+                : status === "polling"
+                  ? "bg-blue-400 animate-pulse"
+                  : status === "connecting"
+                    ? "bg-yellow-400 animate-pulse"
+                    : "bg-red-400"
             }`}
           />
           <span className="text-xs text-text-muted capitalize">{status}</span>
