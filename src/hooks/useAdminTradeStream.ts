@@ -88,16 +88,18 @@ export function useAdminTradeStream() {
 
     // Build WebSocket URL from API base
     const apiUrl = import.meta.env.VITE_API_URL || window.location.origin + "/api"
-    const wsBase = apiUrl
-      .replace(/^http/, "ws")
-      .replace(/\/api\/?$/, "")
+    // https://server.stackalpha.xyz/api → wss://server.stackalpha.xyz
+    const wsBase = apiUrl.replace(/^https/, "wss").replace(/^http/, "ws").replace(/\/api\/?$/, "")
     const wsUrl = `${wsBase}/api/v1/ws/admin/trades?token=${token}`
+
+    console.log("[TradeStream] Connecting to:", wsUrl.replace(/token=.*/, "token=***"))
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
     ws.onopen = () => {
       if (!mountedRef.current) return
+      console.log("[TradeStream] Connected")
       setStatus("connected")
       retriesRef.current = 0
 
@@ -126,10 +128,12 @@ export function useAdminTradeStream() {
 
     ws.onclose = (event) => {
       if (!mountedRef.current) return
+      console.log(`[TradeStream] Closed: code=${event.code} reason=${event.reason}`)
       setStatus("disconnected")
 
       // Don't reconnect on intentional close (4001=auth, 4003=not admin)
       if (event.code === 4001 || event.code === 4003) {
+        console.error("[TradeStream] Auth failed:", event.reason)
         setStatus("error")
         return
       }
@@ -140,8 +144,9 @@ export function useAdminTradeStream() {
       reconnectRef.current = setTimeout(connect, delay)
     }
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
       if (!mountedRef.current) return
+      console.error("[TradeStream] WebSocket error:", err)
       // onclose will fire after this, which handles reconnect
     }
   }, [cleanup])
