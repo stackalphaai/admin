@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { logsApi } from "@/services/api"
 
 const SOURCES = ["celery-worker", "celery-beat", "api"]
@@ -13,8 +13,12 @@ export function LogsPage() {
   const [lineCount, setLineCount] = useState(200)
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const fetchingRef = useRef(false)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
+    // Prevent overlapping requests
+    if (fetchingRef.current) return
+    fetchingRef.current = true
     setLoading(true)
     setError("")
     try {
@@ -30,19 +34,21 @@ export function LogsPage() {
       console.error(e)
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
-  }
+  }, [source, lineCount, search])
 
+  // Fetch on source/lineCount change
   useEffect(() => {
     fetchLogs()
-  }, [source, lineCount])
+  }, [fetchLogs])
 
   // Auto-refresh every 3 seconds
   useEffect(() => {
     if (!autoRefresh) return
     const interval = setInterval(fetchLogs, 3000)
     return () => clearInterval(interval)
-  }, [autoRefresh, source, lineCount, search])
+  }, [autoRefresh, fetchLogs])
 
   // Auto-scroll to bottom on new lines
   useEffect(() => {
@@ -50,10 +56,6 @@ export function LogsPage() {
       bottomRef.current.scrollIntoView({ behavior: "smooth" })
     }
   }, [lines, autoRefresh])
-
-  const handleSearch = () => {
-    fetchLogs()
-  }
 
   const getLineColor = (line: string) => {
     const lower = line.toLowerCase()
@@ -126,12 +128,12 @@ export function LogsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && fetchLogs()}
               placeholder="Filter logs..."
               className="flex-1 bg-surface border border-border rounded-md px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-accent"
             />
             <button
-              onClick={handleSearch}
+              onClick={fetchLogs}
               className="px-3 py-1.5 rounded-md text-sm bg-surface border border-border hover:border-accent"
             >
               Filter
@@ -146,22 +148,23 @@ export function LogsPage() {
         </div>
       )}
 
-      {/* Log output */}
+      {/* Log output — single pre block instead of N divs */}
       <div
         ref={containerRef}
         className="flex-1 min-h-0 bg-[#0d1117] border border-border rounded-lg overflow-auto font-mono text-xs leading-5"
       >
-        <div className="p-3">
+        <pre className="p-3 m-0 whitespace-pre-wrap break-all">
           {lines.length === 0 && !loading && (
             <span className="text-text-muted">No log lines found</span>
           )}
           {lines.map((line, i) => (
-            <div key={i} className={`whitespace-pre-wrap break-all ${getLineColor(line)}`}>
+            <span key={i} className={getLineColor(line)}>
               {line}
-            </div>
+              {"\n"}
+            </span>
           ))}
-          <div ref={bottomRef} />
-        </div>
+          <span ref={bottomRef} />
+        </pre>
       </div>
     </div>
   )
