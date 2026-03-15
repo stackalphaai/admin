@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { signalsApi } from "@/services/api"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
-import { formatDate, formatCurrency } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import type { Signal } from "@/types"
 
 interface ExecuteResult {
@@ -237,15 +237,15 @@ export function SignalsPage() {
           },
           {
             header: "Entry",
-            accessor: (row: Signal) => formatCurrency(row.entry_price),
+            accessor: (row: Signal) => `$${row.entry_price}`,
           },
           {
             header: "TP",
-            accessor: (row: Signal) => formatCurrency(row.take_profit_price),
+            accessor: (row: Signal) => `$${row.take_profit_price}`,
           },
           {
             header: "SL",
-            accessor: (row: Signal) => formatCurrency(row.stop_loss_price),
+            accessor: (row: Signal) => `$${row.stop_loss_price}`,
           },
           {
             header: "Confidence",
