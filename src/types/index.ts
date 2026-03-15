@@ -89,18 +89,21 @@ export interface Trade {
   symbol: string
   direction: string
   entry_price: number
-  current_price: number | null
+  exit_price: number | null
   take_profit_price: number
   stop_loss_price: number
   leverage: number
   position_size_usd: number
-  pnl_usd: number | null
-  pnl_percent: number | null
+  margin_used: number | null
+  realized_pnl: number | null
+  realized_pnl_percent: number | null
+  unrealized_pnl: number | null
   status: string
   close_reason: string | null
   exchange: string
-  created_at: string
+  opened_at: string | null
   closed_at: string | null
+  created_at: string
 }
 
 export interface Subscription {
