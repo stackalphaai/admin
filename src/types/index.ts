@@ -9,6 +9,11 @@ export interface DashboardStats {
   active_signals: number
   total_revenue: number
   pending_payouts: number
+  total_wallet_balance: number
+  total_exchange_balance: number
+  total_unrealized_pnl: number
+  active_wallets: number
+  active_exchanges: number
 }
 
 export interface SystemHealth {
