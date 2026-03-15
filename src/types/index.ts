@@ -84,6 +84,7 @@ export interface Signal {
 export interface Trade {
   id: string
   user_id: string
+  user_email: string
   signal_id: string | null
   symbol: string
   direction: string
