@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { tradesApi } from "@/services/api"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
@@ -95,8 +95,12 @@ function LiveTradesView() {
                         {t.direction.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-xs">${t.entry_price}</td>
-                    <td className="px-3 py-2 text-right font-mono text-xs">${t.current_price}</td>
+                    <td className="px-3 py-2 text-right font-mono text-xs">
+                      {t.entry_price != null ? `$${t.entry_price}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-xs">
+                      {t.current_price != null ? `$${t.current_price}` : "—"}
+                    </td>
                     <td className="px-3 py-2 text-right text-xs">
                       <span className="text-green-400">${t.take_profit_price ?? "—"}</span>
                       {" / "}
@@ -129,7 +133,7 @@ function HistoryView() {
   const [trades, setTrades] = useState<Trade[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [status, setStatus] = useState("closed")
+  const [status, setStatus] = useState("")
   const [exchange, setExchange] = useState("")
   const [loading, setLoading] = useState(true)
 
@@ -148,9 +152,10 @@ function HistoryView() {
       .finally(() => setLoading(false))
   }
 
-  useState(() => {
+  useEffect(() => {
     fetchTrades()
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, status, exchange])
 
   const handleForceClose = async (id: string) => {
     if (!confirm("Force close this trade?")) return
@@ -170,7 +175,6 @@ function HistoryView() {
           onChange={(e) => {
             setStatus(e.target.value)
             setPage(1)
-            setTimeout(fetchTrades)
           }}
           className="bg-surface border border-border rounded-md px-3 py-1.5 text-sm"
         >
@@ -185,7 +189,6 @@ function HistoryView() {
           onChange={(e) => {
             setExchange(e.target.value)
             setPage(1)
-            setTimeout(fetchTrades)
           }}
           className="bg-surface border border-border rounded-md px-3 py-1.5 text-sm"
         >
@@ -280,7 +283,6 @@ function HistoryView() {
         totalPages={totalPages}
         onPageChange={(p) => {
           setPage(p)
-          setTimeout(fetchTrades)
         }}
         isLoading={loading}
       />

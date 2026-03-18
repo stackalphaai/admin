@@ -9,8 +9,8 @@ export interface LiveTrade {
   exchange: string
   direction: string
   status: string
-  entry_price: number
-  current_price: number
+  entry_price: number | null
+  current_price: number | null
   take_profit_price: number | null
   stop_loss_price: number | null
   position_size_usd: number
@@ -18,6 +18,8 @@ export interface LiveTrade {
   margin_used: number | null
   unrealized_pnl: number
   unrealized_pnl_percent: number
+  tp_distance_pct: number | null
+  sl_distance_pct: number | null
   opened_at: string | null
 }
 
@@ -38,11 +40,29 @@ interface TradeStreamMessage {
 
 type ConnectionStatus = "connecting" | "connected" | "polling" | "disconnected" | "error"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api"
+const API_BASE_URL = import.meta.env.VITE_API_URL || ""
 const HEARTBEAT_INTERVAL = 15_000
 const POLL_INTERVAL = 3_000
-const WS_CONNECT_TIMEOUT = 5_000
+const WS_CONNECT_TIMEOUT = 8_000
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000]
+
+function buildWsUrl(token: string): string {
+  // Derive WebSocket base from the HTTP API URL
+  let base = API_BASE_URL
+  // Strip trailing /api or /api/ suffix (we'll re-add the full path)
+  base = base.replace(/\/api\/?$/, "")
+  // Convert http(s) → ws(s)
+  if (base.startsWith("https://")) {
+    base = "wss://" + base.slice("https://".length)
+  } else if (base.startsWith("http://")) {
+    base = "ws://" + base.slice("http://".length)
+  } else {
+    // Relative URL — use window.location
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
+    base = `${proto}//${window.location.host}`
+  }
+  return `${base}/api/v1/ws/admin/trades?token=${encodeURIComponent(token)}`
+}
 
 /**
  * Admin trade stream hook.
@@ -89,37 +109,37 @@ export function useAdminTradeStream() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!mountedRef.current) return
-      const items = res.data.items || []
+      const items: Record<string, unknown>[] = res.data.items || []
       setTrades(
-        items.map((t: Record<string, unknown>) => ({
-          id: t.id,
-          user_email: t.user_email || "—",
-          symbol: t.symbol,
-          exchange: t.exchange || "hyperliquid",
-          direction: t.direction,
-          status: t.status,
-          entry_price: t.entry_price,
-          current_price: t.entry_price, // polling doesn't have live price
-          take_profit_price: t.take_profit_price,
-          stop_loss_price: t.stop_loss_price,
-          position_size_usd: t.position_size_usd,
-          leverage: t.leverage,
-          margin_used: t.margin_used,
-          unrealized_pnl: t.unrealized_pnl || 0,
-          unrealized_pnl_percent: t.unrealized_pnl_percent || 0,
-          opened_at: t.opened_at,
+        items.map((t) => ({
+          id: t.id as string,
+          user_email: (t.user_email as string) || "—",
+          symbol: t.symbol as string,
+          exchange: (t.exchange as string) || "hyperliquid",
+          direction: t.direction as string,
+          status: t.status as string,
+          entry_price: (t.entry_price as number) ?? null,
+          // REST API doesn't have live current_price; show null so UI can show "—"
+          current_price: null,
+          take_profit_price: (t.take_profit_price as number) ?? null,
+          stop_loss_price: (t.stop_loss_price as number) ?? null,
+          position_size_usd: (t.position_size_usd as number) || 0,
+          leverage: (t.leverage as number) || 1,
+          margin_used: (t.margin_used as number) ?? null,
+          unrealized_pnl: (t.unrealized_pnl as number) || 0,
+          unrealized_pnl_percent: (t.unrealized_pnl_percent as number) || 0,
+          tp_distance_pct: null,
+          sl_distance_pct: null,
+          opened_at: (t.opened_at as string) ?? null,
         }))
       )
       setSummary({
-        total_open: res.data.total || items.length,
+        total_open: (res.data.total as number) || items.length,
         total_unrealized_pnl: items.reduce(
-          (sum: number, t: Record<string, number>) => sum + (t.unrealized_pnl || 0),
+          (sum, t) => sum + ((t.unrealized_pnl as number) || 0),
           0
         ),
-        total_margin_used: items.reduce(
-          (sum: number, t: Record<string, number>) => sum + (t.margin_used || 0),
-          0
-        ),
+        total_margin_used: items.reduce((sum, t) => sum + ((t.margin_used as number) || 0), 0),
       })
     } catch (e) {
       console.error("[TradeStream] Poll error:", e)
@@ -179,11 +199,7 @@ export function useAdminTradeStream() {
     cleanupWs()
     setStatus("connecting")
 
-    const wsBase = API_BASE_URL.replace(/^https/, "wss")
-      .replace(/^http/, "ws")
-      .replace(/\/api\/?$/, "")
-    const wsUrl = `${wsBase}/api/v1/ws/admin/trades?token=${token}`
-
+    const wsUrl = buildWsUrl(token)
     console.log("[TradeStream] WS connecting to:", wsUrl.replace(/token=.*/, "token=***"))
 
     const ws = new WebSocket(wsUrl)
