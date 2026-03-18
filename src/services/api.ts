@@ -165,6 +165,10 @@ export const tasksApi = {
     api.post<{ task_id: string }>("/v1/admin/tasks/trigger", {
       task_name: taskName,
     }),
+  toggle: (taskName: string) =>
+    api.patch<{ task_name: string; enabled: boolean }>(
+      `/v1/admin/tasks/${encodeURIComponent(taskName)}/toggle`,
+    ),
 }
 
 // Broadcast

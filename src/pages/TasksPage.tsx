@@ -10,6 +10,7 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<CeleryTask[]>([])
   const [loading, setLoading] = useState(true)
   const [triggerResult, setTriggerResult] = useState<Record<string, string>>({})
+  const [togglingTask, setTogglingTask] = useState<string | null>(null)
   const [showLogs, setShowLogs] = useState(false)
   const [logSource, setLogSource] = useState<string>("celery-worker")
   const [logLines, setLogLines] = useState<string[]>([])
@@ -82,6 +83,20 @@ export function TasksPage() {
     }
   }
 
+  const handleToggle = async (taskName: string) => {
+    setTogglingTask(taskName)
+    try {
+      const res = await tasksApi.toggle(taskName)
+      setTasks((prev) =>
+        prev.map((t) => (t.name === taskName ? { ...t, enabled: res.data.enabled } : t)),
+      )
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setTogglingTask(null)
+    }
+  }
+
   const getLineColor = (line: string) => {
     const lower = line.toLowerCase()
     if (lower.includes("error") || lower.includes("exception") || lower.includes("traceback"))
@@ -101,7 +116,7 @@ export function TasksPage() {
         <div>
           <h1 className="text-2xl font-bold">Celery Tasks</h1>
           <p className="text-sm text-text-muted">
-            Manually trigger background tasks. Tasks run asynchronously via Celery.
+            Manually trigger background tasks or enable/disable their scheduled execution.
           </p>
         </div>
         {!showLogs && (
@@ -119,22 +134,40 @@ export function TasksPage() {
 
       <div className="grid gap-3">
         {tasks.map((task) => (
-          <Card key={task.name} className="flex items-center justify-between">
-            <div>
-              <code className="text-sm font-mono text-accent">{task.name}</code>
-              <p className="text-xs text-text-muted mt-1">
-                {task.description}
-              </p>
+          <Card key={task.name} className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono text-accent truncate">{task.name}</code>
+                {!task.enabled && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-medium shrink-0">
+                    DISABLED
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-text-muted mt-1">{task.description}</p>
               <div className="flex items-center gap-1 mt-1 text-xs text-text-muted">
                 <Clock size={10} />
                 {task.schedule}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Enable/Disable toggle */}
+              <button
+                onClick={() => handleToggle(task.name)}
+                disabled={togglingTask === task.name}
+                title={task.enabled ? "Disable task" : "Enable task"}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+                  task.enabled ? "bg-accent" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                    task.enabled ? "translate-x-4" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
               {triggerResult[task.name] && (
-                <span className="text-xs text-text-muted">
-                  {triggerResult[task.name]}
-                </span>
+                <span className="text-xs text-text-muted">{triggerResult[task.name]}</span>
               )}
               <button
                 onClick={() => handleTrigger(task.name)}

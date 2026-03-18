@@ -122,6 +122,7 @@ export interface CeleryTask {
   name: string
   schedule: string
   description: string
+  enabled: boolean
 }
 
 export interface PaginatedResponse<T> {
