@@ -199,7 +199,7 @@ export function TradeStats() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, "Cumulative P&L"]}
+                    formatter={(value) => [`$${Number(value ?? 0).toFixed(2)}`, "Cumulative P&L"]}
                     labelFormatter={(l) => new Date(l).toLocaleDateString()}
                   />
                   <Area type="monotone" dataKey="cumPnl" stroke="#6366f1" fillOpacity={1} fill="url(#eqGradAdmin)" />
@@ -272,7 +272,7 @@ export function TradeStats() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, "P&L"]}
+                    formatter={(value) => [`$${Number(value ?? 0).toFixed(2)}`, "P&L"]}
                     labelFormatter={(l) => new Date(l).toLocaleDateString()}
                   />
                   <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
