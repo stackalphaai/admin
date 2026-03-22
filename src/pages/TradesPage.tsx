@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge"
 import { formatDate, formatCurrency } from "@/lib/utils"
 import type { Trade } from "@/types"
 import { Radio, History } from "lucide-react"
+import { TradeStats } from "@/components/TradeStats"
 import {
   useAdminTradeStream,
   type LiveTrade,
@@ -294,7 +295,10 @@ export function TradesPage() {
   const [view, setView] = useState<"live" | "history">("live")
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Platform-wide trade stats */}
+      <TradeStats />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Trades</h1>
         <div className="flex gap-1 bg-surface border border-border rounded-lg p-0.5">

@@ -207,3 +207,13 @@ export const logsApi = {
       params: { source, lines, search: search || undefined },
     }),
 }
+
+// Analytics (system-wide)
+export const analyticsApi = {
+  getTradeAnalytics: (period = "30d") =>
+    api.get("/v1/admin/analytics/trades", { params: { period } }),
+  getDailyPnL: (days = 30) =>
+    api.get("/v1/admin/analytics/daily-pnl", { params: { days } }),
+  getPerformanceBySymbol: () =>
+    api.get("/v1/admin/analytics/performance-by-symbol"),
+}
